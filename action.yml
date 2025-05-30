@@ -1,7 +1,7 @@
 # Copyright 2024 Chainguard, Inc.
 # SPDX-License-Identifier: Apache-2.0
 
-name: 'Octo STS'
+name: "Octo STS"
 description: |
   This action exchanges the workflow's identity token for a Github App token
   from the Octo STS service, in accordance with the trust policy of the target
@@ -11,14 +11,19 @@ inputs:
   domain:
     description: |
       The domain of the Octo STS instance to use to federate.
-    default: octo-sts.dev
+    default: webhooks.build.datadoghq.com
+
+  audience:
+    description: |
+      The audience of the Octo STS instance to use.
+    default: dd-octo-sts
 
   scope:
     description: |
       The org/repo of the repository to which to request access.
     required: true
 
-  identity:
+  policy:
     description: |
       The name of the trust policy to load from the target repository. The trust policy
       is loaded from https://github.com/{scope} from the file
@@ -32,6 +37,6 @@ outputs:
     value: ${{ steps.octo-sts.outputs.token }}
 
 runs:
-  using: 'node20'
-  main: 'index.js'
-  post: 'post.js'
+  using: "node20"
+  main: "index.js"
+  post: "post.js"
