@@ -35,6 +35,10 @@ outputs:
     description: |
       The federated token to use for authentication.
     value: ${{ steps.octo-sts.outputs.token }}
+  error:
+    description: |
+      The error stack.
+    value: ${{ steps.octo-sts.outputs.error }}
 
 runs:
   using: "node20"

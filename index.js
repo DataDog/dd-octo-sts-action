@@ -40,6 +40,7 @@ async function fetchWithRetry(url, options = {}, retries = 3, initialDelay = 100
 
 (async function main() {
   // You can use await inside this function block
+  const fs = require('fs');
   try {
     const res = await fetchWithRetry(`${actionsUrl}&audience=${audience}`, { headers: { 'Authorization': `Bearer ${actionsToken}` } }, 5);
     const json = await res.json();
@@ -54,10 +55,11 @@ async function fetchWithRetry(url, options = {}, retries = 3, initialDelay = 100
     console.log(`Token hash: ${tokHash}`);
 
     console.log(`::add-mask::${tok}`);
-    const fs = require('fs');
     fs.appendFile(process.env.GITHUB_OUTPUT, `token=${tok}`, function (err) { if (err) throw err; }); // Write the output.
     fs.appendFile(process.env.GITHUB_STATE, `token=${tok}`, function (err) { if (err) throw err; }); // Write the state, so the post job can delete the token.
   } catch (err) {
-    console.log(`::error::${err.stack}`); process.exit(1);
+    console.log(`::error:: Error = ${err}`)
+    fs.appendFile(process.env.GITHUB_OUTPUT, `error=${err}`, function (err) { if (err) {} }); // Write the error.
+    console.log(`::error::${err.stack}`);
   }
 })();
