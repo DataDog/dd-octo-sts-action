@@ -1,6 +1,6 @@
 issuer: https://token.actions.githubusercontent.com
 
-subject_pattern: repo:DataDog/dd-octo-sts-action:ref:.*
+subject_pattern: repo:DataDog/dd-octo-sts-action:.*
 
 claim_pattern:
   event_name: (push|pull_request)
