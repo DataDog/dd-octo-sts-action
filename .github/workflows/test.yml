@@ -1,0 +1,41 @@
+name: Test action
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  read-contents:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Needed to federate tokens.
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      #<TESTING> Only required for debugging, remove afterwards
+      - name: Debug OIDC Claims
+        uses: github/actions-oidc-debugger@main
+        with:
+          audience: "octo-debugger"
+      #</TESTING>
+      - uses: ./
+        id: octo-sts
+        with:
+          scope: DataDog/dd-octo-sts-action
+          policy: self.test
+      - name: Verify API access # Function to check contents:read access
+        uses: ./.github/actions/verify-api-access
+        with:
+          token: ${{ steps.octo-sts.outputs.token }}
+      - name: Check scoped access
+        run: |
+          gh api /installation/repositories \
+            --jq '.repositories[].full_name' | grep -Fxq "$GITHUB_REPOSITORY" && {
+              echo "✅ Token is valid and scoped to $GITHUB_REPOSITORY"
+          } || {
+              echo "❌ Token is not scoped to $GITHUB_REPOSITORY"
+              exit 1
+          }
+        env:
+          GITHUB_TOKEN: ${{ steps.octo-sts.outputs.token }}

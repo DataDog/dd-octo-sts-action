@@ -1,0 +1,59 @@
+name: "Verify API Access"
+description: "Verifies API access by comparing contents of a file (FLAG) requested via the API to checked out contents"
+
+inputs:
+  token:
+    description: "Token to use for authentication."
+    required: true
+  repository:
+    description: "The repository (owner/repo) to fetch the variable from (). Defaults to current repo."
+    required: false
+  flag-filename:
+    description: "The name of the variable to fetch from GitHub API. Defaults to FLAG."
+    required: false
+    default: ".flag"
+  preset-value:
+    description: "The preset value to compare against. Defaults to local file"
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Fetch and Validate Variable
+      shell: bash
+      run: |
+        set -e
+        REPO="${{ inputs.repository }}"
+        if [ -z "$REPO" ]; then
+          REPO="$GITHUB_REPOSITORY"
+        fi
+
+        COMPARE_VALUE="${{ inputs.preset-value }}"
+        if [ -z "$COMPARE_VALUE" ]; then
+          COMPARE_VALUE=$(cat ${{ inputs.flag-filename }} )
+        fi
+
+        echo "REPO: $REPO"
+        echo "Preset value: $COMPARE_VALUE"
+
+        echo "GitHub Authentication:"
+        gh auth status
+        FLAG_CONTENT=$(gh api \
+          -H "Accept: application/vnd.github+json" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          /repos/$REPO/contents/${{ inputs.flag-filename }} \
+          --jq '.content' \
+          | base64 -d)
+        echo "Flag content: $FLAG_CONTENT"
+        if [ -z "$FLAG_CONTENT" ]; then
+          echo "Variable not found or API access denied"
+          exit 1
+        fi
+        if [ "$FLAG_CONTENT" != "$COMPARE_VALUE" ]; then
+          echo "🛑 Flag value ("$FLAG_CONTENT") does not match preset value ("$COMPARE_VALUE") - failing"
+          exit 1
+        fi
+        echo "✅ Succeeded with API access"
+      env:
+        GH_TOKEN: ${{ inputs.token }}
