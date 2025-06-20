@@ -3,6 +3,8 @@
 This action federates the GitHub Actions identity token for a Github App token
 according to the Trust Policy in the target organization or repository.
 
+Testing testing testing
+
 ## Usage
 
 Consider the following workflow in `my-org/my-repo`:
