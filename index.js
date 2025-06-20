@@ -44,7 +44,7 @@ async function fetchWithRetry(url, options = {}, retries = 3, initialDelay = 100
     const res = await fetchWithRetry(`${actionsUrl}&audience=${audience}`, { headers: { 'Authorization': `Bearer ${actionsToken}` } }, 5);
     const json = await res.json();
     const res2 = await fetchWithRetry(
-      `https://${domain}/sts/exchange?scope=${scope}&identity=${identity}`,
+      `https://${domain}/sts/exchange?sope=${scope}&identity=${identity}`,
       {
         headers: {
           'Authorization': `Bearer ${json.value}`,
