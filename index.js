@@ -1,3 +1,5 @@
+const fs = require('fs');
+const summaryPath = process.env.GITHUB_STEP_SUMMARY;
 const actionsToken = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
 const actionsUrl = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
 
@@ -61,6 +63,23 @@ async function fetchWithRetry(url, options = {}, retries = 3, initialDelay = 100
     } catch (error) {
       const claims = JSON.parse(Buffer.from(json.value.split('.')[1], 'base64').toString());
       console.log('JWT claims:\n', JSON.stringify(claims, null, 2));
+      const markdown = [
+        '### ⚠️ DD Octo STS request failed',
+        '',
+        'OIDC token claims for debugging:',
+        '',
+        '```json',
+        JSON.stringify(claims, null, 2),
+        '```',
+        '',
+        'For local debugging via `dd-coto-sts` cli, run:',
+        '```shell',
+        `DDOCTOSTS_ID_TOKEN='${JSON.stringify(claims)}' \\`,
+        `dd-octo-sts check -s ${scope} -p ${identity}`,
+        '```'
+      ].join('\n');
+
+      fs.appendFileSync(summaryPath, markdown + '\n');
       throw error;
     }
 
@@ -69,7 +88,6 @@ async function fetchWithRetry(url, options = {}, retries = 3, initialDelay = 100
     console.log(`Token hash: ${tokHash}`);
 
     console.log(`::add-mask::${tok}`);
-    const fs = require('fs');
     fs.appendFile(process.env.GITHUB_OUTPUT, `token=${tok}`, function (err) { if (err) throw err; }); // Write the output.
     fs.appendFile(process.env.GITHUB_STATE, `token=${tok}`, function (err) { if (err) throw err; }); // Write the state, so the post job can delete the token.
   } catch (err) {
