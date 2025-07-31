@@ -43,19 +43,26 @@ async function fetchWithRetry(url, options = {}, retries = 3, initialDelay = 100
   try {
     const res = await fetchWithRetry(`${actionsUrl}&audience=${audience}`, { headers: { 'Authorization': `Bearer ${actionsToken}` } }, 5);
     const json = await res.json();
-    const res2 = await fetchWithRetry(
-      `https://${domain}/sts/exchange?scope=${scope}&identity=${identity}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${json.value}`,
-          'x-datadog-target-release': 'dd-octo-sts.dd-octo-sts'
+    let res2, json2, tok;
+    try {
+      res2 = await fetchWithRetry(
+        `https://${domain}/sts/exchange?scope=${scope}&identity=${identity}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${json.value}`,
+            'x-datadog-target-release': 'dd-octo-sts.dd-octo-sts'
+          }
         }
-      }
-    );
-    const json2 = await res2.json();
+      );
+      json2 = await res2.json();
 
-    if (!json2.token) { console.log(`::error::${json2.message}`); process.exit(1); }
-    const tok = json2.token;
+      if (!json2.token) { console.log(`::error::${json2.message}`); process.exit(1); }
+      tok = json2.token;
+    } catch (error) {
+      const claims = JSON.parse(Buffer.from(json.value.split('.')[1], 'base64').toString());
+      console.log('JWT claims:\n', JSON.stringify(claims, null, 2));
+      throw error;
+    }
 
     const crypto = require('crypto');
     const tokHash = crypto.createHash('sha256').update(tok).digest('hex');
