@@ -72,7 +72,7 @@ async function fetchWithRetry(url, options = {}, retries = 3, initialDelay = 100
         JSON.stringify(claims, null, 2),
         '```',
         '',
-        'For local debugging via `dd-coto-sts` cli, run:',
+        'For local debugging via `dd-octo-sts` cli, run:',
         '```shell',
         `DDOCTOSTS_ID_TOKEN='${JSON.stringify(claims)}' \\`,
         `dd-octo-sts check -s ${scope} -p ${identity}`,
