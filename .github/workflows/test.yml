@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       #<TESTING> Only required for debugging, remove afterwards
       - name: Debug OIDC Claims
-        uses: github/actions-oidc-debugger@0705a46041e35206455b781a260e4af1c6e60b6d # main
+        uses: github/actions-oidc-debugger@9649f894cd935032350792327ca5354e88e662e3 # main
         with:
           audience: "octo-debugger"
       #</TESTING>
