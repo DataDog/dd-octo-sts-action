@@ -20,8 +20,9 @@ inputs:
 
   scope:
     description: |
-      The org/repo of the repository to which to request access.
-    required: true
+      The org/repo of the repository to which to request access (legacy endpoint).
+      Mutually exclusive with scope_enterprise and scope_organization.
+    required: false
 
   policy:
     description: |
@@ -30,11 +31,50 @@ inputs:
       .github/chainguard/{identity}.sts.yaml
     required: true
 
+  pool_name:
+    description: |
+      The name of the application pool to use. When provided, uses the pool endpoint.
+      Mutually exclusive with application_id.
+    required: false
+
+  application_id:
+    description: |
+      The specific application ID to use. When provided, uses the pool endpoint.
+      Mutually exclusive with pool_name.
+    required: false
+
+  scope_enterprise:
+    description: |
+      Enterprise slug for enterprise-level tokens (pool endpoint only).
+      Mutually exclusive with scope and scope_organization.
+    required: false
+
+  scope_organization:
+    description: |
+      Organization name for organization-level tokens (pool endpoint only).
+      Mutually exclusive with scope and scope_enterprise.
+    required: false
+
 outputs:
   token:
     description: |
       The federated token to use for authentication.
     value: ${{ steps.octo-sts.outputs.token }}
+
+  expires_at:
+    description: |
+      ISO 8601 timestamp when the token expires (pool endpoint only).
+    value: ${{ steps.octo-sts.outputs.expires_at }}
+
+  application_id:
+    description: |
+      The application ID that issued the token (pool endpoint only).
+    value: ${{ steps.octo-sts.outputs.application_id }}
+
+  application_name:
+    description: |
+      The application name that issued the token (pool endpoint only).
+    value: ${{ steps.octo-sts.outputs.application_name }}
 
 runs:
   using: "node20"
