@@ -12,10 +12,10 @@ jobs:
       id-token: write # Needed to federate tokens.
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       #<TESTING> Only required for debugging, remove afterwards
       - name: Debug OIDC Claims
-        uses: github/actions-oidc-debugger@0705a46041e35206455b781a260e4af1c6e60b6d # main
+        uses: github/actions-oidc-debugger@018a1dc4f8e47adca924d55e4bb0ddce917af32d # main
         with:
           audience: "octo-debugger"
       #</TESTING>
