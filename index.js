@@ -112,8 +112,8 @@ function buildExchangeUrl() {
       if (usePoolEndpoint && json2.token) {
         const debugResponse = {
           has_token: !!json2.token.token,
-          expires_seconds: json2.token.expires_seconds,
-          token_installation: json2.token.token_installation,
+          expiresSeconds: json2.token.expiresSeconds,
+          tokenInstallation: json2.token.tokenInstallation,
           response_keys: Object.keys(json2),
           token_keys: Object.keys(json2.token)
         };
@@ -126,12 +126,12 @@ function buildExchangeUrl() {
           process.exit(1);
         }
         tok = json2.token.token;
-        if (json2.token.expires_seconds) {
-          expiresAt = new Date(json2.token.expires_seconds * 1000).toISOString();
+        if (json2.token.expiresSeconds) {
+          expiresAt = new Date(json2.token.expiresSeconds * 1000).toISOString();
         }
-        if (json2.token.token_installation) {
-          appId = json2.token.token_installation.application_id || '';
-          appName = json2.token.token_installation.application_name || '';
+        if (json2.token.tokenInstallation) {
+          appId = json2.token.tokenInstallation.applicationId || '';
+          appName = json2.token.tokenInstallation.applicationName || '';
         }
       } else {
         if (!json2.token) {
