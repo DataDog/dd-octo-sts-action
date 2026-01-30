@@ -168,6 +168,12 @@ function buildExchangeUrl() {
       throw error;
     }
 
+    // Sleep to allow token to propagate across GitHub's API servers
+    if (usePoolEndpoint) {
+      console.log('Waiting 5s for token propagation...');
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+
     const crypto = require('crypto');
     const tokHash = crypto.createHash('sha256').update(tok).digest('hex');
     console.log(`Token hash: ${tokHash}`);
