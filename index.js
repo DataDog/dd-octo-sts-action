@@ -159,6 +159,11 @@ function buildExchangeUrl() {
     const crypto = require('crypto');
     const tokHash = crypto.createHash('sha256').update(tok).digest('hex');
     console.log(`Token hash: ${tokHash}`);
+    if (usePoolEndpoint) {
+      console.log(`Application ID: ${appId}`);
+      console.log(`Application Name: ${appName}`);
+      console.log(`Expires At: ${expiresAt}`);
+    }
 
     console.log(`::add-mask::${tok}`);
     const outputs = [
