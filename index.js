@@ -108,6 +108,18 @@ function buildExchangeUrl() {
       );
       json2 = await res2.json();
 
+      // Debug: log response structure (without the actual token)
+      if (usePoolEndpoint && json2.token) {
+        const debugResponse = {
+          has_token: !!json2.token.token,
+          expires_seconds: json2.token.expires_seconds,
+          token_installation: json2.token.token_installation,
+          response_keys: Object.keys(json2),
+          token_keys: Object.keys(json2.token)
+        };
+        console.log(`Pool response structure: ${JSON.stringify(debugResponse)}`);
+      }
+
       if (usePoolEndpoint) {
         if (!json2.token || !json2.token.token) {
           console.log(`::error::${json2.message || 'Pool endpoint did not return a token'}`);
