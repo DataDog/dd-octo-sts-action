@@ -20,8 +20,9 @@ inputs:
 
   scope:
     description: |
-      The org/repo of the repository to which to request access.
-    required: true
+      The scope to request access to. Must be "org" for organization-scoped tokens or
+      "org/repo" for repository-scoped tokens. Mutually exclusive with scope_enterprise.
+    required: false
 
   policy:
     description: |
@@ -29,6 +30,24 @@ inputs:
       is loaded from https://github.com/{scope} from the file
       .github/chainguard/{identity}.sts.yaml
     required: true
+
+  pool_name:
+    description: |
+      The name of the application pool to use. When provided, the pool endpoint is used
+      instead of the legacy endpoint. Mutually exclusive with application_id.
+    required: false
+
+  application_id:
+    description: |
+      A specific application ID to use with the pool endpoint. When provided, the pool
+      endpoint is used instead of the legacy endpoint. Mutually exclusive with pool_name.
+    required: false
+
+  scope_enterprise:
+    description: |
+      Enterprise slug for enterprise-level tokens (pool endpoint only).
+      Mutually exclusive with scope.
+    required: false
 
 outputs:
   token:
