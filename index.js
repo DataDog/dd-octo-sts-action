@@ -12,10 +12,47 @@ const domain = process.env.INPUT_DOMAIN;
 const audience = process.env.INPUT_AUDIENCE;
 const scope = process.env.INPUT_SCOPE;
 const identity = process.env.INPUT_POLICY;
+const poolName = process.env.INPUT_POOL_NAME;
+const applicationId = process.env.INPUT_APPLICATION_ID;
+const scopeEnterprise = process.env.INPUT_SCOPE_ENTERPRISE;
 
-if (!scope || !identity) {
-  console.log(`::error::Missing required inputs 'scope' and 'policy'`);
+const usePoolEndpoint = !!(poolName || applicationId);
+
+if (!identity) {
+  console.log(`::error::Missing required input 'policy'`);
   process.exit(1);
+}
+
+if (scope) {
+  const slashCount = (scope.match(/\//g) || []).length;
+  if (slashCount > 1) {
+    console.log(`::error::Invalid 'scope': must be "org" or "org/repo", got too many slashes`);
+    process.exit(1);
+  }
+  if (scope.endsWith('/')) {
+    console.log(`::error::Invalid 'scope': must be "org" or "org/repo", not "org/"`);
+    process.exit(1);
+  }
+}
+
+if (usePoolEndpoint) {
+  if (poolName && applicationId) {
+    console.log(`::error::Cannot specify both 'pool_name' and 'application_id'`);
+    process.exit(1);
+  }
+  if (scope && scopeEnterprise) {
+    console.log(`::error::Cannot specify both 'scope' and 'scope_enterprise'`);
+    process.exit(1);
+  }
+  if (!scope && !scopeEnterprise) {
+    console.log(`::error::Pool endpoint requires 'scope' or 'scope_enterprise'`);
+    process.exit(1);
+  }
+} else {
+  if (!scope) {
+    console.log(`::error::Missing required input 'scope'`);
+    process.exit(1);
+  }
 }
 
 async function fetchWithRetry(url, options = {}, retries = 3, initialDelay = 1000) {
@@ -40,15 +77,41 @@ async function fetchWithRetry(url, options = {}, retries = 3, initialDelay = 100
   throw new Error(`Fetch failed after ${attempt} attempts.`);
 }
 
+function buildExchangeUrl() {
+  if (usePoolEndpoint) {
+    const params = new URLSearchParams();
+    params.append('policy', identity);
+
+    if (poolName) {
+      params.append('pool_name', poolName);
+    } else {
+      params.append('application_id', applicationId);
+    }
+
+    if (scopeEnterprise) {
+      params.append('scope_enterprise.enterprise', scopeEnterprise);
+    } else if (scope.includes('/')) {
+      const [org, repo] = scope.split('/');
+      params.append('scope_repository.organization', org);
+      params.append('scope_repository.repository', repo);
+    } else {
+      params.append('scope_organization.organization', scope);
+    }
+
+    return `https://${domain}/sts/pool/exchange?${params.toString()}`;
+  } else {
+    return `https://${domain}/sts/exchange?scope=${scope}&identity=${identity}`;
+  }
+}
+
 (async function main() {
-  // You can use await inside this function block
   try {
     const res = await fetchWithRetry(`${actionsUrl}&audience=${audience}`, { headers: { 'Authorization': `Bearer ${actionsToken}` } }, 5);
     const json = await res.json();
     let res2, json2, tok;
     try {
       res2 = await fetchWithRetry(
-        `https://${domain}/sts/exchange?scope=${scope}&identity=${identity}`,
+        buildExchangeUrl(),
         {
           headers: {
             'Authorization': `Bearer ${json.value}`,
@@ -58,11 +121,36 @@ async function fetchWithRetry(url, options = {}, retries = 3, initialDelay = 100
       );
       json2 = await res2.json();
 
-      if (!json2.token) { console.log(`::error::${json2.message}`); process.exit(1); }
-      tok = json2.token;
+      if (usePoolEndpoint) {
+        if (!json2.token || !json2.token.token) {
+          console.log(`::error::${json2.message || 'Pool endpoint did not return a token'}`);
+          process.exit(1);
+        }
+        tok = json2.token.token;
+      } else {
+        if (!json2.token) { console.log(`::error::${json2.message}`); process.exit(1); }
+        tok = json2.token;
+      }
     } catch (error) {
       const claims = JSON.parse(Buffer.from(json.value.split('.')[1], 'base64').toString());
       console.log('JWT claims:\n', JSON.stringify(claims, null, 2));
+
+      let debugCmd;
+      if (usePoolEndpoint) {
+        const poolArg = poolName ? `-pool ${poolName}` : `-app ${applicationId}`;
+        let scopeArg;
+        if (scopeEnterprise) {
+          scopeArg = `-scope-enterprise ${scopeEnterprise}`;
+        } else if (scope.includes('/')) {
+          scopeArg = `-scope-repo ${scope}`;
+        } else {
+          scopeArg = `-scope-org ${scope}`;
+        }
+        debugCmd = `dd-octo-sts check-pool ${poolArg} ${scopeArg} -p ${identity}`;
+      } else {
+        debugCmd = `dd-octo-sts check -s ${scope} -p ${identity}`;
+      }
+
       const markdown = [
         '### ⚠️ DD Octo STS request failed',
         '',
@@ -75,7 +163,7 @@ async function fetchWithRetry(url, options = {}, retries = 3, initialDelay = 100
         'For local debugging via `dd-octo-sts` cli, run:',
         '```shell',
         `DDOCTOSTS_ID_TOKEN='${JSON.stringify(claims)}' \\`,
-        `dd-octo-sts check -s ${scope} -p ${identity}`,
+        debugCmd,
         '```'
       ].join('\n');
 
@@ -88,8 +176,8 @@ async function fetchWithRetry(url, options = {}, retries = 3, initialDelay = 100
     console.log(`Token hash: ${tokHash}`);
 
     console.log(`::add-mask::${tok}`);
-    fs.appendFile(process.env.GITHUB_OUTPUT, `token=${tok}`, function (err) { if (err) throw err; }); // Write the output.
-    fs.appendFile(process.env.GITHUB_STATE, `token=${tok}`, function (err) { if (err) throw err; }); // Write the state, so the post job can delete the token.
+    fs.appendFile(process.env.GITHUB_OUTPUT, `token=${tok}`, function (err) { if (err) throw err; });
+    fs.appendFile(process.env.GITHUB_STATE, `token=${tok}`, function (err) { if (err) throw err; });
   } catch (err) {
     console.log(`::error::${err.stack}`); process.exit(1);
   }
