@@ -66,7 +66,7 @@ async function fetchWithRetry(url, options = {}, retries = 3, initialDelay = 100
       }
       return response;
     } catch (error) {
-      console.warn(`Attempt ${attempt} failed. Error: ${error.message}`);
+      console.warn(`Attempt ${attempt} failed for URL: ${url}. Error: ${error.message}`);
       const jitter = Math.floor(Math.random() * 5000);
       const delay = Math.min(2 ** attempt * initialDelay + jitter, 10000); // Limit max delay to 10 seconds
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -74,7 +74,7 @@ async function fetchWithRetry(url, options = {}, retries = 3, initialDelay = 100
       retries--;
     }
   }
-  throw new Error(`Fetch failed after ${attempt} attempts.`);
+  throw new Error(`Fetch failed after ${attempt} attempts for URL: ${url}.`);
 }
 
 function buildExchangeUrl() {
