@@ -5,6 +5,8 @@ on:
       - main
   pull_request:
 
+permissions: {}
+
 jobs:
   read-contents:
     runs-on: ubuntu-latest
@@ -13,6 +15,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
       - name: Debug OIDC Claims
         run: |
           TOKEN=$(curl -sS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
