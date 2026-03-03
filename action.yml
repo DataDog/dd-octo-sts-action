@@ -18,6 +18,14 @@ inputs:
       The audience of the Octo STS instance to use.
     default: dd-octo-sts
 
+  debug:
+    description: |
+      When set to true, the action prints OIDC token claims to the console
+      and GitHub Step Summary, then exits without exchanging for a token.
+      Useful for debugging trust policy mismatches.
+    required: false
+    default: "false"
+
   scope:
     description: |
       The scope to request access to. Must be "org" for organization-scoped tokens or

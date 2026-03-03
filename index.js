@@ -15,6 +15,7 @@ const identity = process.env.INPUT_POLICY;
 const poolName = process.env.INPUT_POOL_NAME;
 const applicationId = process.env.INPUT_APPLICATION_ID;
 const scopeEnterprise = process.env.INPUT_SCOPE_ENTERPRISE;
+const debugMode = (process.env.INPUT_DEBUG || 'false').toLowerCase() === 'true';
 
 const usePoolEndpoint = !!(poolName || applicationId);
 
@@ -104,10 +105,58 @@ function buildExchangeUrl() {
   }
 }
 
+function decodeJwtClaims(token) {
+  return JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+}
+
+function formatClaimsMarkdown(claims, title, debugCmd) {
+  const lines = [
+    `### ${title}`,
+    '',
+    'OIDC token claims:',
+    '',
+    '```json',
+    JSON.stringify(claims, null, 2),
+    '```',
+  ];
+
+  if (debugCmd) {
+    lines.push(
+      '',
+      'For local debugging via `dd-octo-sts` cli, run:',
+      '```shell',
+      `DDOCTOSTS_ID_TOKEN='${JSON.stringify(claims)}' \\`,
+      debugCmd,
+      '```'
+    );
+  }
+
+  return lines.join('\n');
+}
+
 (async function main() {
   try {
     const res = await fetchWithRetry(`${actionsUrl}&audience=${audience}`, { headers: { 'Authorization': `Bearer ${actionsToken}` } }, 5);
     const json = await res.json();
+
+    // Always emit claims as debug log (visible when ACTIONS_STEP_DEBUG=true)
+    const oidcClaims = decodeJwtClaims(json.value);
+    const claimsJson = JSON.stringify(oidcClaims, null, 2);
+    for (const line of claimsJson.split('\n')) {
+      console.log(`::debug::OIDC claim: ${line}`);
+    }
+
+    if (debugMode) {
+      console.log('Debug mode enabled. Printing OIDC token claims and exiting.');
+      console.log('');
+      console.log('OIDC token claims:');
+      console.log(claimsJson);
+
+      const markdown = formatClaimsMarkdown(oidcClaims, 'OIDC Token Claims (debug mode)');
+      fs.appendFileSync(summaryPath, markdown + '\n');
+      return;
+    }
+
     let res2, json2, tok;
     try {
       res2 = await fetchWithRetry(
@@ -132,8 +181,7 @@ function buildExchangeUrl() {
         tok = json2.token;
       }
     } catch (error) {
-      const claims = JSON.parse(Buffer.from(json.value.split('.')[1], 'base64').toString());
-      console.log('JWT claims:\n', JSON.stringify(claims, null, 2));
+      console.log('JWT claims:\n', JSON.stringify(oidcClaims, null, 2));
 
       let debugCmd;
       if (usePoolEndpoint) {
@@ -151,22 +199,7 @@ function buildExchangeUrl() {
         debugCmd = `dd-octo-sts check -s ${scope} -p ${identity}`;
       }
 
-      const markdown = [
-        '### ⚠️ DD Octo STS request failed',
-        '',
-        'OIDC token claims for debugging:',
-        '',
-        '```json',
-        JSON.stringify(claims, null, 2),
-        '```',
-        '',
-        'For local debugging via `dd-octo-sts` cli, run:',
-        '```shell',
-        `DDOCTOSTS_ID_TOKEN='${JSON.stringify(claims)}' \\`,
-        debugCmd,
-        '```'
-      ].join('\n');
-
+      const markdown = formatClaimsMarkdown(oidcClaims, '\u26a0\ufe0f DD Octo STS request failed', debugCmd);
       fs.appendFileSync(summaryPath, markdown + '\n');
       throw error;
     }
