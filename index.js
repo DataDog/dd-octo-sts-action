@@ -1,3 +1,32 @@
+/**
+ * Parses JWT token and extracts claims from the payload.
+ * @param {string} token - The JWT token to parse
+ * @returns {Object} The parsed claims object
+ * @throws {Error} If the token is invalid or cannot be parsed (without including token data)
+ */
+function parseJwtClaims(token) {
+  if (!token) {
+    throw new Error('Token value is missing');
+  }
+  const tokenParts = token.split('.');
+  if (tokenParts.length !== 3) {
+    throw new Error(`Invalid JWT structure: expected 3 parts, got ${tokenParts.length}`);
+  }
+  let payload;
+  try {
+    payload = Buffer.from(tokenParts[1], 'base64url').toString('utf8');
+  } catch (decodeErr) {
+    throw new Error('Failed to decode token payload: invalid base64url encoding');
+  }
+  let claims;
+  try {
+    claims = JSON.parse(payload);
+  } catch (parseErr) {
+    throw new Error('Failed to parse token payload: invalid JSON');
+  }
+  return claims;
+}
+
 const fs = require('fs');
 const summaryPath = process.env.GITHUB_STEP_SUMMARY;
 const actionsToken = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
@@ -181,7 +210,8 @@ function formatClaimsMarkdown(claims, title, debugCmd) {
         tok = json2.token;
       }
     } catch (error) {
-      console.log('JWT claims:\n', JSON.stringify(oidcClaims, null, 2));
+      const claims = parseJwtClaims(json.value);
+      console.log('JWT claims:\n', JSON.stringify(claims, null, 2));
 
       let debugCmd;
       if (usePoolEndpoint) {
@@ -199,7 +229,22 @@ function formatClaimsMarkdown(claims, title, debugCmd) {
         debugCmd = `dd-octo-sts check -s ${scope} -p ${identity}`;
       }
 
-      const markdown = formatClaimsMarkdown(oidcClaims, '\u26a0\ufe0f DD Octo STS request failed', debugCmd);
+      const markdown = [
+        '### \u26a0\ufe0f DD Octo STS request failed',
+        '',
+        'OIDC token claims for debugging:',
+        '',
+        '```json',
+        JSON.stringify(claims, null, 2),
+        '```',
+        '',
+        'For local debugging via `dd-octo-sts` cli, run:',
+        '```shell',
+        `DDOCTOSTS_ID_TOKEN='${JSON.stringify(claims)}' \\`,
+        debugCmd,
+        '```'
+      ].join('\n');
+
       fs.appendFileSync(summaryPath, markdown + '\n');
       throw error;
     }
@@ -215,3 +260,5 @@ function formatClaimsMarkdown(claims, title, debugCmd) {
     console.log(`::error::${err.stack}`); process.exit(1);
   }
 })();
+
+module.exports = { parseJwtClaims };
