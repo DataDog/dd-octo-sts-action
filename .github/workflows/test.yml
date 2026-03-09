@@ -17,11 +17,6 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - name: Debug OIDC Claims
-        run: |
-          TOKEN=$(curl -sS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=octo-debugger" | jq -r '.value')
-          echo "$TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq .
       - uses: ./
         id: octo-sts
         with:
@@ -42,3 +37,29 @@ jobs:
           }
         env:
           GITHUB_TOKEN: ${{ steps.octo-sts.outputs.token }}
+
+  debug-claims:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Needed to federate tokens.
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Debug OIDC claims
+        uses: ./
+        id: octo-sts-debug
+        with:
+          scope: DataDog/dd-octo-sts-action
+          policy: self.test
+          debug: true
+      - name: Verify no token output
+        run: |
+          if [ -n "$TOKEN" ]; then
+            echo "::error::Expected no token in debug mode, but got one"
+            exit 1
+          fi
+          echo "Confirmed: no token output in debug mode"
+        env:
+          TOKEN: ${{ steps.octo-sts-debug.outputs.token }}
