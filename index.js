@@ -230,7 +230,10 @@ function formatClaimsMarkdown(claims, title, debugCmd) {
     }
 
     const crypto = require('crypto');
-    const tokHash = crypto.createHash('sha256').update(tok).digest('hex');
+    // Match the encoding GitHub uses for `hashed_token` in the audit log
+    // (base64 of the raw SHA-256 digest), so this value can be pasted
+    // directly into an audit log search.
+    const tokHash = crypto.createHash('sha256').update(tok).digest('base64');
     console.log(`Token hash: ${tokHash}`);
 
     console.log(`::add-mask::${tok}`);
