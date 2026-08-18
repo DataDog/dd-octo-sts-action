@@ -134,10 +134,6 @@ function buildExchangeUrl() {
   }
 }
 
-function decodeJwtClaims(token) {
-  return JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-}
-
 function formatClaimsMarkdown(claims, title, debugCmd) {
   const lines = [
     `### ${title}`,
@@ -169,7 +165,7 @@ function formatClaimsMarkdown(claims, title, debugCmd) {
     const json = await res.json();
 
     // Always emit claims as debug log (visible when ACTIONS_STEP_DEBUG=true)
-    const oidcClaims = decodeJwtClaims(json.value);
+    const oidcClaims = parseJwtClaims(json.value);
     const claimsJson = JSON.stringify(oidcClaims, null, 2);
     for (const line of claimsJson.split('\n')) {
       console.log(`::debug::OIDC claim: ${line}`);
@@ -210,8 +206,7 @@ function formatClaimsMarkdown(claims, title, debugCmd) {
         tok = json2.token;
       }
     } catch (error) {
-      const claims = parseJwtClaims(json.value);
-      console.log('JWT claims:\n', JSON.stringify(claims, null, 2));
+      console.log('JWT claims:\n', claimsJson);
 
       let debugCmd;
       if (usePoolEndpoint) {
@@ -229,22 +224,7 @@ function formatClaimsMarkdown(claims, title, debugCmd) {
         debugCmd = `dd-octo-sts check -s ${scope} -p ${identity}`;
       }
 
-      const markdown = [
-        '### \u26a0\ufe0f DD Octo STS request failed',
-        '',
-        'OIDC token claims for debugging:',
-        '',
-        '```json',
-        JSON.stringify(claims, null, 2),
-        '```',
-        '',
-        'For local debugging via `dd-octo-sts` cli, run:',
-        '```shell',
-        `DDOCTOSTS_ID_TOKEN='${JSON.stringify(claims)}' \\`,
-        debugCmd,
-        '```'
-      ].join('\n');
-
+      const markdown = formatClaimsMarkdown(oidcClaims, '\u26a0\ufe0f DD Octo STS request failed', debugCmd);
       fs.appendFileSync(summaryPath, markdown + '\n');
       throw error;
     }
@@ -255,10 +235,10 @@ function formatClaimsMarkdown(claims, title, debugCmd) {
 
     console.log(`::add-mask::${tok}`);
     fs.appendFile(process.env.GITHUB_OUTPUT, `token=${tok}`, function (err) { if (err) throw err; });
-    fs.appendFile(process.env.GITHUB_STATE, `token=${tok}`, function (err) { if (err) throw err; });
+    fs.appendFile(process.env.GITHUB_STATE, `token=${tok}\n`, function (err) { if (err) throw err; });
   } catch (err) {
     console.log(`::error::${err.stack}`); process.exit(1);
   }
 })();
 
-module.exports = { parseJwtClaims };
+module.exports = { parseJwtClaims, formatClaimsMarkdown };

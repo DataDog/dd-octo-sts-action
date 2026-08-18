@@ -6,7 +6,7 @@ process.env.INPUT_POLICY = 'test-policy';
 process.env.INPUT_SCOPE = 'test-org';
 process.env.GITHUB_STEP_SUMMARY = '/dev/null';
 
-const { parseJwtClaims } = require('./index');
+const { parseJwtClaims, formatClaimsMarkdown } = require('./index');
 
 describe('parseJwtClaims', () => {
   function createTestJwt(payload) {
@@ -96,5 +96,30 @@ describe('parseJwtClaims', () => {
         expect(e.message).not.toContain(sensitivePayload);
       }
     });
+  });
+});
+
+describe('formatClaimsMarkdown', () => {
+  const claims = { sub: 'repo:octo-org/octo-repo:ref:refs/heads/main' };
+
+  it('should include the title and claims json fence', () => {
+    const markdown = formatClaimsMarkdown(claims, 'OIDC Token Claims (debug mode)');
+    expect(markdown).toContain('### OIDC Token Claims (debug mode)');
+    expect(markdown).toContain('```json');
+    expect(markdown).toContain(JSON.stringify(claims, null, 2));
+  });
+
+  it('should omit the debug shell fence when debugCmd is not passed', () => {
+    const markdown = formatClaimsMarkdown(claims, 'OIDC Token Claims (debug mode)');
+    expect(markdown).not.toContain('```shell');
+    expect(markdown).not.toContain('DDOCTOSTS_ID_TOKEN');
+  });
+
+  it('should include the debug shell fence when debugCmd is passed', () => {
+    const debugCmd = 'dd-octo-sts check -s test-org -p test-policy';
+    const markdown = formatClaimsMarkdown(claims, '⚠️ DD Octo STS request failed', debugCmd);
+    expect(markdown).toContain('```shell');
+    expect(markdown).toContain(`DDOCTOSTS_ID_TOKEN='${JSON.stringify(claims)}' \\`);
+    expect(markdown).toContain(debugCmd);
   });
 });
