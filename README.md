@@ -5,6 +5,12 @@ according to the Trust Policy in the target organization or repository.
 
 ## Usage
 
+> [!IMPORTANT]
+> Pin `dd-octo-sts-action` to a full commit SHA. Find the SHA for the release
+> you want on the [Releases page](https://github.com/DataDog/dd-octo-sts-action/releases),
+> and keep the version as a trailing comment so it's easy to see what's pinned
+> and to bump later, e.g. `@<commit-sha> # <version>`.
+
 Consider the following workflow in `my-org/my-repo`:
 
 ```yaml
@@ -12,7 +18,7 @@ permissions:
   id-token: write # Needed to federate tokens.
 
 steps:
-  - uses: DataDog/dd-octo-sts-action@main
+  - uses: DataDog/dd-octo-sts-action@<commit-sha> # <version>
     id: octo-sts
     with:
       scope: your-org/your-repo # the target repository
@@ -52,7 +58,7 @@ permissions:
   id-token: write # Needed to federate tokens.
 
 steps:
-  - uses: DataDog/dd-octo-sts-action@main
+  - uses: DataDog/dd-octo-sts-action@<commit-sha> # <version>
     id: octo-sts
     with:
       scope: your-org/your-repo
@@ -73,7 +79,7 @@ The `scope` input works the same for both endpoints:
 For enterprise-scoped tokens, use `scope_enterprise` instead of `scope`:
 
 ```yaml
-- uses: DataDog/dd-octo-sts-action@main
+- uses: DataDog/dd-octo-sts-action@<commit-sha> # <version>
   id: octo-sts
   with:
     scope_enterprise: your-enterprise
@@ -84,7 +90,7 @@ For enterprise-scoped tokens, use `scope_enterprise` instead of `scope`:
 If you need to target a specific application rather than a random one from the pool, use `application_id` instead of `pool_name`:
 
 ```yaml
-- uses: DataDog/dd-octo-sts-action@main
+- uses: DataDog/dd-octo-sts-action@<commit-sha> # <version>
   id: octo-sts
   with:
     scope: your-org/your-repo
