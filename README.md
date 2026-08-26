@@ -106,7 +106,7 @@ Set `debug: true` to print the OIDC token claims without exchanging for a
 GitHub App token. This is useful for diagnosing trust policy mismatches:
 
 ```yaml
-- uses: DataDog/dd-octo-sts-action@main
+- uses: DataDog/dd-octo-sts-action@<commit-sha> # <version>
   with:
     scope: your-org/your-repo
     policy: foo
