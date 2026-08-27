@@ -189,7 +189,9 @@ function formatClaimsMarkdown(claims, title, debugCmd) {
         {
           headers: {
             'Authorization': `Bearer ${json.value}`,
-            'x-datadog-target-release': 'dd-octo-sts.dd-octo-sts'
+            'x-datadog-target-release': 'dd-octo-sts.dd-octo-sts',
+            'X-Datadog-Client-Name': 'dd-octo-sts-action',
+            'X-Datadog-Client-Version': process.env.GITHUB_ACTION_REF || 'unknown'
           }
         }
       );
